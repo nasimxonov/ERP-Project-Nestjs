@@ -7,27 +7,208 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id           String    @id
-  first_name   String
-  last_name    String
-  username     String    @unique
-  password     String
-  email        String?   @unique
-  googleId     String?   @unique
-  phone_number String
-  birth_date   DateTime
-  image        String?
-  sex          Sex
+// ========== ENUMS ==========
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("user")
-}
-
+// Jins
 enum Sex {
   Male
   Female
 }
 
+// Rollar
+enum Role {
+  SUPERADMIN
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+// Davomat holati
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+// To‘lov holati
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+// Filiallar (12 ta viloyat)
+enum Branch {
+  TASHKENT
+  SAMARQAND
+  BUXORO
+  ANDIJON
+  NAMANGAN
+  FARGONA
+  JIZZAX
+  SIRDARYO
+  QASHQADARYO
+  SURXONDARYO
+  NAVOIY
+  XORAZM
+}
+
+// ========== MODELS ==========
+
+model User {
+  id           String   @id @default(cuid())
+  first_name   String
+  last_name    String
+  username     String   @unique
+  password     String
+  email        String?  @unique
+  googleId     String?  @unique
+  phone_number String?
+  birth_date   DateTime?
+  image        String?
+  sex          Sex?
+
+  role   Role @default(STUDENT)
+  xp     Int  @default(0)
+  silver Int  @default(0)
+
+  groups        GroupMember[]
+  tasks         TaskProgress[]
+  payments      Payment[]
+  shopItems     ShopPurchase[]
+  createdGroups Group[]        @relation("GroupCreatedBy")
+  teacherGroups Group[]        @relation("TeacherGroups")
+
+  Attendance Attendance[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Group {
+  id        String  @id @default(cuid())
+  name      String
+  direction String?
+  branch    Branch?
+  isActive  Boolean @default(true)
+
+  teacher   User?   @relation("TeacherGroups", fields: [teacherId], references: [id])
+  teacherId String?
+
+  createdBy   User   @relation("GroupCreatedBy", fields: [createdById], references: [id])
+  createdById String
+
+  members     GroupMember[]
+  attendances Attendance[]
+  tasks       Task[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("groups")
+}
+
+model GroupMember {
+  id       String   @id @default(cuid())
+  user     User     @relation(fields: [userId], references: [id])
+  userId   String
+  group    Group    @relation(fields: [groupId], references: [id])
+  groupId  String
+  joinedAt DateTime @default(now())
+  isActive Boolean  @default(true)
+
+  @@unique([userId, groupId])
+  @@map("group_members")
+}
+
+model Attendance {
+  id      String           @id @default(cuid())
+  user    User             @relation(fields: [userId], references: [id])
+  userId  String
+  group   Group            @relation(fields: [groupId], references: [id])
+  groupId String
+  date    DateTime         @default(now())
+  status  AttendanceStatus
+
+  @@map("attendances")
+}
+
+model Task {
+  id           String         @id @default(cuid())
+  title        String
+  description  String?
+  xpReward     Int            @default(1)
+  silverReward Int            @default(2)
+  group        Group?         @relation(fields: [groupId], references: [id])
+  groupId      String?
+  progress     TaskProgress[]
+
+  createdAt DateTime @default(now())
+
+  @@map("tasks")
+}
+
+model TaskProgress {
+  id          String    @id @default(cuid())
+  task        Task      @relation(fields: [taskId], references: [id])
+  taskId      String
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+  isDone      Boolean   @default(false)
+  completedAt DateTime?
+
+  @@unique([taskId, userId])
+  @@map("task_progress")
+}
+
+model Payment {
+  id        String        @id @default(cuid())
+  user      User          @relation(fields: [userId], references: [id])
+  userId    String
+  amount    Float
+  forMonth  String? // 2025-10 kabi 1 oy uchun to‘lov
+  forCourse String? // kurs nomi agar butun kurs uchun bo‘lsa
+  status    PaymentStatus @default(PENDING)
+  createdAt DateTime      @default(now())
+
+  @@map("payments")
+}
+
+model ShopItem {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  priceSilver Int
+  image       String?
+
+  purchases ShopPurchase[]
+
+  @@map("shop_items")
+}
+
+model ShopPurchase {
+  id          String   @id @default(cuid())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  item        ShopItem @relation(fields: [itemId], references: [id])
+  itemId      String
+  purchasedAt DateTime @default(now())
+
+  @@map("shop_purchases")
+}
+
+// | Model                                       | Vazifasi                                               |
+// | ------------------------------------------- | ------------------------------------------------------ |
+// | **User**                                    | Foydalanuvchilar (Superadmin, Admin, Teacher, Student) |
+// | **Group**                                   | Guruhlar, filial va yo‘nalish asosida                  |
+// | **GroupMember**                             | Kim qaysi guruhda — ko‘p-köp aloqani saqlaydi          |
+// | **Attendance**                              | Davomat (PRESENT, ABSENT, LATE, EXCUSED)               |
+// | **Task**                                    | Guruhga yoki umumiy topshiriqlar                       |
+// | **TaskProgress**                            | Har bir foydalanuvchining topshiriqdagi holati         |
+// | **Payment**                                 | Oylik yoki kurs uchun to‘lovlar                        |
+// | **ShopItem**                                | Do‘kondagi mahsulotlar (kumushga sotib olinadi)        |
+// | **ShopPurchase**                            | Sotib olish tarixi                                     |
+// | **Role / AttendanceStatus / PaymentStatus** | Enum turlar, kodni soddalashtiradi                     |
