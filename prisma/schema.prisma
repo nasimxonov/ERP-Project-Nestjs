@@ -7,9 +7,22 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// | Model                                       | Vazifasi                                               |
+// | ------------------------------------------- | ------------------------------------------------------ |
+// | **User**                                    | Foydalanuvchilar (Superadmin, Admin, Teacher, Student) |
+// | **Group**                                   | Guruhlar, filial va yo‘nalish asosida                  |
+// | **GroupMember**                             | Kim qaysi guruhda — ko‘p-köp aloqani saqlaydi          |
+// | **Attendance**                              | Davomat (PRESENT, ABSENT, LATE, EXCUSED)               |
+// | **Task**                                    | Guruhga yoki umumiy topshiriqlar                       |
+// | **TaskProgress**                            | Har bir foydalanuvchining topshiriqdagi holati         |
+// | **Payment**                                 | Oylik yoki kurs uchun to‘lovlar                        |
+// | **ShopItem**                                | Do‘kondagi mahsulotlar (kumushga sotib olinadi)        |
+// | **ShopPurchase**                            | Sotib olish tarixi                                     |
+// | **Role / AttendanceStatus / PaymentStatus** | Enum turlar, kodni soddalashtiradi                     |
+
 // ========== ENUMS ==========
 
-// Jins
+// Userning jinsi
 enum Sex {
   Male
   Female
@@ -38,7 +51,7 @@ enum PaymentStatus {
   FAILED
 }
 
-// Filiallar (12 ta viloyat)
+// Filiallar 
 enum Branch {
   TASHKENT
   SAMARQAND
@@ -57,13 +70,13 @@ enum Branch {
 // ========== MODELS ==========
 
 model User {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   first_name   String
   last_name    String
-  username     String   @unique
+  username     String    @unique
   password     String
-  email        String?  @unique
-  googleId     String?  @unique
+  email        String?   @unique
+  googleId     String?   @unique
   phone_number String?
   birth_date   DateTime?
   image        String?
@@ -199,16 +212,3 @@ model ShopPurchase {
 
   @@map("shop_purchases")
 }
-
-// | Model                                       | Vazifasi                                               |
-// | ------------------------------------------- | ------------------------------------------------------ |
-// | **User**                                    | Foydalanuvchilar (Superadmin, Admin, Teacher, Student) |
-// | **Group**                                   | Guruhlar, filial va yo‘nalish asosida                  |
-// | **GroupMember**                             | Kim qaysi guruhda — ko‘p-köp aloqani saqlaydi          |
-// | **Attendance**                              | Davomat (PRESENT, ABSENT, LATE, EXCUSED)               |
-// | **Task**                                    | Guruhga yoki umumiy topshiriqlar                       |
-// | **TaskProgress**                            | Har bir foydalanuvchining topshiriqdagi holati         |
-// | **Payment**                                 | Oylik yoki kurs uchun to‘lovlar                        |
-// | **ShopItem**                                | Do‘kondagi mahsulotlar (kumushga sotib olinadi)        |
-// | **ShopPurchase**                            | Sotib olish tarixi                                     |
-// | **Role / AttendanceStatus / PaymentStatus** | Enum turlar, kodni soddalashtiradi                     |
