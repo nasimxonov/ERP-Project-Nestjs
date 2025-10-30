@@ -1,17 +1,16 @@
 import {
   Body,
   Controller,
-  Injectable,
   Post,
   Res,
-  UseGuards,
+  UseGuards
 } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { LoginAuthDto } from './dto/login-auth.dto';
 import type { Response } from 'express';
+import { Roles } from 'src/common/decorators/roles.decorator';
 import { AuthGuard } from 'src/common/guard/auth.guard';
 import { RoleGuard } from 'src/common/guard/role.guard';
-import { Roles } from 'src/common/decorators/roles.decorator';
+import { AuthService } from './auth.service';
+import { LoginAuthDto } from './dto/login-auth.dto';
 import { RegisterAuthDto } from './dto/register-auth.dto';
 
 @Controller('auth')
