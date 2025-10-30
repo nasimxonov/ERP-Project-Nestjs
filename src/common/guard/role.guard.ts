@@ -5,7 +5,6 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { Observable } from 'rxjs';
 import { PrismaService } from 'src/core/database/prisma.service';
 
 @Injectable()
@@ -17,29 +16,27 @@ export class RoleGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const userId = request['userId'];
-    const paramId = request.param.id;
-    const user = await this.prisma.user.findFirst({
-      where: { id: userId },
-    });
 
-    if (!user) {
-      return false;
-    }
+    const user = request.user;
+    if (!user || !user.role)
+      throw new ForbiddenException('Siz tizimga kirishingiz kerak');
+
+    const userId = user.userId || user.id;
+    const paramId = request.params?.id;
 
     const handler = context.getHandler();
     const handlerClass = context.getClass();
-
     const roles =
-      this.reflector.get('roles', handler) ??
-      this.reflector.get('roles', handlerClass);
+      this.reflector.get<string[]>('roles', handler) ??
+      this.reflector.get<string[]>('roles', handlerClass) ??
+      [];
 
-    if (roles.includes(user.role)) {
-      return true;
-    } else if (roles.includes('SUPERADMIN') || userId == paramId) {
-      return true;
-    } else {
-      throw new ForbiddenException('Sizga ruxsat berilmagan!');
-    }
+    if (user.role === 'SUPERADMIN') return true;
+
+    if (roles.includes(user.role)) return true;
+
+    if (paramId && paramId === userId) return true;
+
+    throw new ForbiddenException('Sizga ruxsat berilmagan!');
   }
 }

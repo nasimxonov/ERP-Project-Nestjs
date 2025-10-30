@@ -1,14 +1,13 @@
 import {
   CanActivate,
   ExecutionContext,
-  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 
-Injectable();
+@Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
     private readonly jwtService: JwtService,
@@ -17,19 +16,35 @@ export class AuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const token = request.cookies.token;
+
+    const token = request.cookies?.token;
+
     const handler = context.getHandler();
     const handlerClass = context.getClass();
+    const isFreeAuthClass = this.reflector.get<boolean>(
+      'isFreeAuth',
+      handlerClass,
+    );
+    const isFreeAuth = this.reflector.get<boolean>('isFreeAuth', handler);
 
-    const isFreeAuthClass = this.reflector.get('isFreeAuth', handlerClass);
-    const isFreeAuth = this.reflector.get('isFreeAuth', handler);
-
-    if (isFreeAuth || isFreeAuthClass) return true;
-    try {
-      let { userId } = await this.jwtService.verifyAsync(token.token);
-      request.userId = userId;
+    if (isFreeAuth || isFreeAuthClass) {
       return true;
-    } catch (error) {
+    }
+
+    if (!token) {
+      throw new UnauthorizedException('Siz tizimga qayta kirishingiz kerak');
+    }
+
+    try {
+      const payload = await this.jwtService.verifyAsync(token);
+
+      request.user = {
+        id: payload.userId,
+        role: payload.role,
+      };
+
+      return true;
+    } catch (err) {
       throw new UnauthorizedException('Siz tizimga qayta kirishingiz kerak');
     }
   }
